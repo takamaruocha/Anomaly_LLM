@@ -12,18 +12,20 @@
 #   "0shot-vision-dyscalc"
 # )
 
-data=("flat-trend")
-variants=(
-  "1shot-vision" "0shot-vision" "1shot-text-s0.3" "0shot-text-s0.3" "0shot-text" \
-  "0shot-text-s0.3-cot" "1shot-text-s0.3-cot" "0shot-vision-cot" "1shot-vision-cot"
-  "0shot-text-s0.3-csv" "0shot-text-s0.3-cot-csv"
-  "0shot-text-s0.3-tpd" "0shot-text-s0.3-cot-tpd"
-  "0shot-text-s0.3-pap" "0shot-text-s0.3-cot-pap"
-)
+data=("UCR_Anomaly")
+#variants=(
+#  "1shot-vision" "0shot-vision" "1shot-text-s0.3" "0shot-text-s0.3" "0shot-text" \
+#  "0shot-text-s0.3-cot" "1shot-text-s0.3-cot" "0shot-vision-cot" "1shot-vision-cot"
+#  "0shot-text-s0.3-csv" "0shot-text-s0.3-cot-csv"
+#  "0shot-text-s0.3-tpd" "0shot-text-s0.3-cot-tpd"
+#  "0shot-text-s0.3-pap" "0shot-text-s0.3-cot-pap"
+#)
+variants=("0shot-text")
 
 # models=("internvlm-76b")
 
-models=("gpt-4o-mini")
+models=("gpt-4o-2024-11-20")
+
 for model in "${models[@]}"; do
   for datum in "${data[@]}"; do
     for variant in "${variants[@]}"; do

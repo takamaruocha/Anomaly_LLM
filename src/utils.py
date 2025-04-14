@@ -6,6 +6,8 @@ import random
 import os
 from openai_api import send_openai_request
 from sklearn.metrics import precision_score, recall_score, f1_score
+import sys
+sys.path.append('affiliation-metrics-py')
 from affiliation.generics import convert_vector_to_events
 from affiliation.metrics import pr_from_events
 
@@ -135,7 +137,8 @@ def generate_batch_AD_requests(
     model_name: str,
     data_name: str,
     request_func: callable,
-    variant: str = "standard"
+    variant: str = "standard",
+    entity = "160_UCR_Anomaly_TkeepThirdMARS",
 ):
     import json
     import time
@@ -145,9 +148,10 @@ def generate_batch_AD_requests(
     from data.synthetic import SyntheticDataset
     from tqdm import trange
     
-    results_dir = f'results/synthetic/{data_name}/{model_name}/'
-    data_dir = f'data/synthetic/{data_name}/eval/'
-    train_dir = f'data/synthetic/{data_name}/train/'
+    results_dir = f'results/{data_name}_batch/{entity}/{model_name}/'
+    base_dir = "/Storage2/maru/datasets/UCR_Anomaly_Archive/AnomLLM/"
+    data_dir = os.path.join(base_dir, "eval", entity)
+    train_dir = os.path.join(base_dir, "train", entity)
     jsonl_fn = os.path.join(results_dir, variant + '_requests.jsonl')
     os.makedirs(results_dir, exist_ok=True)
     

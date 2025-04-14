@@ -1,3 +1,4 @@
+import os
 from utils import parse_output
 from openai_api import send_openai_request
 from config import create_batch_api_configs
@@ -18,6 +19,7 @@ def online_AD_with_retries(
     request_func: callable,
     variant: str = "standard",
     num_retries: int = 4,
+    entity = "160_UCR_Anomaly_TkeepThirdMARS",
 ):
     import json
     import time
@@ -32,9 +34,10 @@ def online_AD_with_retries(
     # Configure logger
     log_fn = f"logs/synthetic/{data_name}/{model_name}/" + variant + ".log"
     logger.add(log_fn, format="{time} {level} {message}", level="INFO")
-    results_dir = f'results/synthetic/{data_name}/{model_name}/'
-    data_dir = f'data/synthetic/{data_name}/eval/'
-    train_dir = f'data/synthetic/{data_name}/train/'
+    results_dir = f'results/{data_name}/{entity}/{model_name}'
+    base_dir = "/Storage2/maru/datasets/UCR_Anomaly_Archive/AnomLLM/"
+    data_dir = os.path.join(base_dir, "eval", entity)
+    train_dir = os.path.join(base_dir, "train", entity)
     jsonl_fn = os.path.join(results_dir, variant + '.jsonl')
     os.makedirs(results_dir, exist_ok=True)
 
@@ -98,12 +101,26 @@ def online_AD_with_retries(
 def main():
     args = parse_arguments()
     batch_api_configs = create_batch_api_configs()
-    online_AD_with_retries(
-        model_name=args.model,
-        data_name=args.data,
-        request_func=batch_api_configs[args.variant],
-        variant=args.variant,
-    )
+    
+    #entities = ["005_UCR_Anomaly_DISTORTEDCIMIS44AirTemperature1", "113_UCR_Anomaly_CIMIS44AirTemperature1"]
+    root_path = "/Storage2/maru/datasets/UCR_Anomaly_Archive/UCR_Anomaly_FullData/"
+    datasets = os.listdir(root_path)
+    datasets = sorted(datasets, key=lambda x: int(x.split('_')[0]))
+    datasets = ["076_UCR_Anomaly_DISTORTEDresperation10"]
+
+    for dataset in datasets:
+        fields = dataset.split('_')
+        entity = '_'.join(fields[:4])
+
+        print(f"\n📊 Processing: {entity}")
+
+        online_AD_with_retries(
+            model_name=args.model,
+            data_name=args.data,
+            request_func=batch_api_configs[args.variant],
+            variant=args.variant,
+            entity=f'{entity}',
+        )
 
 
 if __name__ == '__main__':

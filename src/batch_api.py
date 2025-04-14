@@ -17,12 +17,13 @@ def check_existing_batch(client, batch_id):
         return None
 
 
-def generate_and_save_batch(client, variant, batch_api_configs, model_name, data_name):
+def generate_and_save_batch(client, variant, batch_api_configs, model_name, data_name, entity):
     jsonl_fn = generate_batch_AD_requests(
         model_name=model_name,
         data_name=data_name,
         request_func=batch_api_configs[variant],
-        variant=variant
+        variant=variant,
+        entity=entity
     )
     batch_input_file = client.files.create(
         file=open(jsonl_fn, "rb"),
@@ -83,42 +84,46 @@ def main():
     batch_api_configs = create_batch_api_configs()
     client = openai_client(args.model)
 
-    batch_key = f'{args.data}_{args.model}_{args.variant}'
-    result_fn = f"results/synthetic/{args.data}/{args.model}/{args.variant}.jsonl"
+    datasets = ["005_UCR_Anomaly_DISTORTEDCIMIS44AirTemperature1", "113_UCR_Anomaly_CIMIS44AirTemperature1"]
 
-    # Check if batch exists
-    batch_fn = f'results/synthetic/{args.data}/{args.model}/{args.variant}_batch.json'
-    try:
-        with open(batch_fn, 'r') as f:
-            existing_batches = json.load(f)
-            if batch_key in existing_batches:
-                logger.info(f"Existing batch for {batch_key} found: {existing_batches[batch_key]['id']}")
-                status = existing_batches[batch_key]['status']
-                batch = check_existing_batch(client, existing_batches[batch_key]['id'])
-                logger.debug(f"Batch {existing_batches[batch_key]['id']} status: {status} -> {batch.status}")
-                if batch.status == 'completed':
-                    logger.debug(f"Batch {existing_batches[batch_key]['id']} is completed")
-                    if not os.path.exists(result_fn):
-                        # Retrieve the batch
-                        result = retreive_result(client, batch)
-                        with open(result_fn, 'w') as outfile:
-                            for item in result:
-                                outfile.write(json.dumps(item) + '\n')
-                        logger.info(f"Batch {existing_batches[batch_key]['id']} result saved to {result_fn}")
+    for entity in datasets:
+
+        batch_key = f'{args.data}_{entity}_{args.model}_{args.variant}'
+        result_fn = f"results/{args.data}_batch/{entity}/{args.model}/{args.variant}.jsonl"
+
+        # Check if batch exists
+        batch_fn = f'results/{args.data}_batch/{entity}/{args.model}/{args.variant}_batch.json'
+        try:
+            with open(batch_fn, 'r') as f:
+                existing_batches = json.load(f)
+                if batch_key in existing_batches:
+                    logger.info(f"Existing batch for {batch_key} found: {existing_batches[batch_key]['id']}")
+                    status = existing_batches[batch_key]['status']
+                    batch = check_existing_batch(client, existing_batches[batch_key]['id'])
+                    logger.debug(f"Batch {existing_batches[batch_key]['id']} status: {status} -> {batch.status}")
+                    if batch.status == 'completed':
+                        logger.debug(f"Batch {existing_batches[batch_key]['id']} is completed")
+                        if not os.path.exists(result_fn):
+                            # Retrieve the batch
+                            result = retreive_result(client, batch)
+                            with open(result_fn, 'w') as outfile:
+                                for item in result:
+                                    outfile.write(json.dumps(item) + '\n')
+                            logger.info(f"Batch {existing_batches[batch_key]['id']} result saved to {result_fn}")
+                        else:
+                            logger.debug(f"Batch {existing_batches[batch_key]['id']} result already saved, do nothing")
                     else:
-                        logger.debug(f"Batch {existing_batches[batch_key]['id']} result already saved, do nothing")
-                else:
-                    logger.debug(f"Batch {existing_batches[batch_key]['id']} is still wait in progress")
-                if batch:
-                    save_batch_to_file(batch, batch_key, batch_fn)
-                    return
-    except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
-        logger.error(f"Error loading existing batch: {e}")
+                        logger.debug(f"Batch {existing_batches[batch_key]['id']} is still wait in progress")
+                    if batch:
+                        save_batch_to_file(batch, batch_key, batch_fn)
+                        continue
+        except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
+            logger.error(f"Error loading existing batch: {e}")
 
-    # If not exists, generate a new batch
-    logger.info(f"Generating new batch for {batch_key}...")
-    batch = generate_and_save_batch(client, args.variant, batch_api_configs, args.model, args.data)
-    save_batch_to_file(batch, batch_key, batch_fn)
+        # If not exists, generate a new batch
+        logger.info(f"Generating new batch for {batch_key}...")
+        batch = generate_and_save_batch(client, args.variant, batch_api_configs, args.model, args.data, entity)
+        save_batch_to_file(batch, batch_key, batch_fn)
 
 
 if __name__ == '__main__':

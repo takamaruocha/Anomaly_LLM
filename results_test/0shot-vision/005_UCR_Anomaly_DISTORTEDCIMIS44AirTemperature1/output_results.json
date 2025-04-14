@@ -1,0 +1,11 @@
+{
+  "model": "gpt-4o-2024-11-20",
+  "variant": "0shot-vision",
+  "entity": "005_UCR_Anomaly_DISTORTEDCIMIS44AirTemperature1",
+  "precision": 0.0,
+  "recall": 0.0,
+  "f1": 0.0,
+  "affi_precision": 0.0,
+  "affi_recall": 0.0,
+  "affi_f1": 0.0
+}
