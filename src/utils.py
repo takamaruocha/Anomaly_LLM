@@ -80,6 +80,8 @@ def create_color_generator(exclude_color='blue'):
 def plot_series_and_predictions(
     series: np.ndarray,
     gt_anomaly_intervals: list[list[tuple[int, int]]],
+    global_min: float,
+    global_max: float,
     anomalies: Optional[dict] = None,
     single_series_figsize: tuple[int, int] = (20, 3),
     gt_ylim: tuple[int, int] = (-1, 1),
@@ -110,7 +112,11 @@ def plot_series_and_predictions(
     ymin_max = ymin_max[::-1]
 
     for i in range(series.shape[1]):
-        plt.ylim(gt_ylim)
+        #plt.ylim(gt_ylim)
+        ymin, ymax = global_min, global_max
+        #ymin, ymax = np.min(series[:, i]), np.max(series[:, i])
+        padding = 0.1 * (ymax - ymin)  # 少しだけ余白
+        plt.ylim(ymin - padding, ymax + padding)
         plt.plot(series[:, i], color=gt_color)
 
         if gt_anomaly_intervals is not None:
@@ -169,7 +175,8 @@ def generate_batch_AD_requests(
         idx = f"{str(i).zfill(5)}"
         body = request_func(
             eval_dataset.series[i - 1],
-            train_dataset
+            train_dataset,
+            entity
         )
         body['model'] = model_name
         custom_id = f"{data_name}_{model_name}_{variant}_{idx}"
@@ -308,6 +315,7 @@ def process_dataframe(df):
 def compute_metrics(gt, prediction):
     # Check if both gt and prediction are empty
     if prediction is None:
+        print("A")
         metrics = {
             'precision': 0,
             'recall': 0,
@@ -316,48 +324,55 @@ def compute_metrics(gt, prediction):
             'affi recall': 0,
             'affi f1': 0
         }
-    elif np.count_nonzero(gt) == 0 and np.count_nonzero(prediction) == 0:
-        metrics = {
-            'precision': 1,
-            'recall': 1,
-            'f1': 1,
-            'affi precision': 1,
-            'affi recall': 1,
-            'affi f1': 1
-        }
+    
+    #elif np.count_nonzero(gt) == 0 and np.count_nonzero(prediction) == 0:
+    # gtとpredictionが全て0（正常）の場合は、異常検知に成功（全ての評価指標が1）
+    #    print("B")
+    #    metrics = {
+    #        'precision': 1,
+    #        'recall': 1,
+    #        'f1': 1,
+    #        'affi precision': 1,
+    #        'affi recall': 1,
+    #        'affi f1': 1
+    #    }
     # Check if only gt is empty
-    elif np.count_nonzero(gt) == 0 or np.count_nonzero(prediction) == 0:
-        metrics = {
-            'precision': 0,
-            'recall': 0,
-            'f1': 0,
-            'affi precision': 0,
-            'affi recall': 0,
-            'affi f1': 0
-        }
+    # gtまたはpredictionに異常が一つもない→recallまたはprecisionの分母が0になる
+    #elif np.count_nonzero(gt) == 0 or np.count_nonzero(prediction) == 0:
+    #    print("C")
+    #    metrics = {
+    #        'precision': 0,
+    #        'recall': 0,
+    #        'f1': 0,
+    #        'affi precision': 0,
+    #        'affi recall': 0,
+    #        'affi f1': 0
+    #    }
+    
     else:
-        precision = precision_score(gt, prediction)
-        recall = recall_score(gt, prediction)
-        f1 = f1_score(gt, prediction)
+        print("D")
+        precision = precision_score(gt, prediction, zero_division=0)
+        recall = recall_score(gt, prediction, zero_division=0)
+        f1 = f1_score(gt, prediction, zero_division=0)
         
-        events_pred = convert_vector_to_events(prediction)
-        events_gt = convert_vector_to_events(gt)
-        Trange = (0, len(prediction))
-        aff = pr_from_events(events_pred, events_gt, Trange)
+        #events_pred = convert_vector_to_events(prediction)
+        #events_gt = convert_vector_to_events(gt)
+        #Trange = (0, len(prediction))
+        #aff = pr_from_events(events_pred, events_gt, Trange)
         
         # Calculate affiliation F1
-        if aff['precision'] + aff['recall'] == 0:
-            affi_f1 = 0
-        else:
-            affi_f1 = 2 * (aff['precision'] * aff['recall']) / (aff['precision'] + aff['recall'])
+        #if aff['precision'] + aff['recall'] == 0:
+        #    affi_f1 = 0
+        #else:
+        #    affi_f1 = 2 * (aff['precision'] * aff['recall']) / (aff['precision'] + aff['recall'])
         
         metrics = {
             'precision': round(precision, 3),
             'recall': round(recall, 3),
             'f1': round(f1, 3),
-            'affi precision': round(aff['precision'], 3),
-            'affi recall': round(aff['recall'], 3),
-            'affi f1': round(affi_f1, 3)
+            #'affi precision': round(aff['precision'], 3),
+            #'affi recall': round(aff['recall'], 3),
+            #'affi f1': round(affi_f1, 3)
         }
     return metrics
 
@@ -512,7 +527,7 @@ def load_results(result_fn, raw=False, postprocess_func: callable = None):
             else:
                 try:
                     response_parsed = parse_output(postprocess_func(info['response']))
-                    results.append(interval_to_vector(response_parsed))
+                    results.append(interval_to_vector(response_parsed, start=0, end=96))
                 except Exception:
                     results.append(None)
                     continue

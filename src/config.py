@@ -3,135 +3,159 @@ from prompt import create_openai_request
 
 def create_batch_api_configs():
     return {
-        '1shot-vision': lambda series, train_dataset: create_openai_request(
+        '1shot-vision': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=True,
-            few_shots=train_dataset.few_shots(num_shots=1)
+            few_shots=train_dataset.few_shots(num_shots=1),
+            entity=entity,
+            global_min=global_min,
+            global_max=global_max
         ),
-        '1shot-vision-calc': lambda series, train_dataset: create_openai_request(
-            series,
-            vision=True,
-            calc=True,
-            few_shots=train_dataset.few_shots(num_shots=1)
-        ),
-        '1shot-vision-dyscalc': lambda series, train_dataset: create_openai_request(
-            series,
-            vision=True,
-            calc=False,
-            few_shots=train_dataset.few_shots(num_shots=1)
-        ),
-        '0shot-vision-cot': lambda series, train_dataset: create_openai_request(
-            series,
-            vision=True,
-            cot=train_dataset.name,
-            few_shots=train_dataset.few_shots(num_shots=0)
-        ),
-        '0shot-vision-calc': lambda series, train_dataset: create_openai_request(
+        '1shot-vision-calc': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=True,
             calc=True,
-            few_shots=train_dataset.few_shots(num_shots=0)
+            few_shots=train_dataset.few_shots(num_shots=1),
+            entity=entity,
+            global_min=global_min,
+            global_max=global_max
         ),
-        '0shot-vision-dyscalc': lambda series, train_dataset: create_openai_request(
+        '1shot-vision-dyscalc': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=True,
             calc=False,
-            few_shots=train_dataset.few_shots(num_shots=0)
+            few_shots=train_dataset.few_shots(num_shots=1),
+            entity=entity,
+            global_min=global_min,
+            global_max=global_max
         ),
-        '1shot-vision-cot': lambda series, train_dataset: create_openai_request(
+        '0shot-vision-cot': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=True,
             cot=train_dataset.name,
-            few_shots=train_dataset.few_shots(num_shots=1)
+            few_shots=train_dataset.few_shots(num_shots=0),
+            entity=entity,
+            global_min=global_min,
+            global_max=global_max
         ),
-        '0shot-vision': lambda series, train_dataset: create_openai_request(
+        '0shot-vision-calc': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=True,
-            few_shots=train_dataset.few_shots(num_shots=0)
+            calc=True,
+            few_shots=train_dataset.few_shots(num_shots=0),
+            entity=entity,
+            global_min=global_min,
+            global_max=global_max
         ),
-        '1shot-text': lambda series, train_dataset: create_openai_request(
+        '0shot-vision-dyscalc': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
+            series,
+            vision=True,
+            calc=False,
+            few_shots=train_dataset.few_shots(num_shots=0),
+            entity=entity,
+            global_min=global_min,
+            global_max=global_max
+        ),
+        '1shot-vision-cot': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
+            series,
+            vision=True,
+            cot=train_dataset.name,
+            few_shots=train_dataset.few_shots(num_shots=1),
+            entity=entity,
+            global_min=global_min,
+            global_max=global_max
+        ),
+        '0shot-vision': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
+            series,
+            vision=True,
+            few_shots=train_dataset.few_shots(num_shots=0),
+            entity=entity,
+            global_min=global_min,
+            global_max=global_max
+        ),
+        '1shot-text': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             few_shots=train_dataset.few_shots(num_shots=1)
         ),
-        '0shot-text': lambda series, train_dataset: create_openai_request(
+        '0shot-text': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             few_shots=train_dataset.few_shots(num_shots=0)
         ),
-        '0shot-text-s0.3': lambda series, train_dataset: create_openai_request(
+        '0shot-text-s0.3': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             few_shots=train_dataset.few_shots(num_shots=1),
             series_args={'scale': 0.3}
         ),
-        '0shot-text-s0.3-calc': lambda series, train_dataset: create_openai_request(
+        '0shot-text-s0.3-calc': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             calc=True,
             few_shots=train_dataset.few_shots(num_shots=0),
             series_args={'scale': 0.3}
         ),
-        '0shot-text-s0.3-dyscalc': lambda series, train_dataset: create_openai_request(
+        '0shot-text-s0.3-dyscalc': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             calc=False,
             few_shots=train_dataset.few_shots(num_shots=0),
             series_args={'scale': 0.3}
         ),
-        '1shot-text-s0.3': lambda series, train_dataset: create_openai_request(
+        '1shot-text-s0.3': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             few_shots=train_dataset.few_shots(num_shots=1),
             series_args={'scale': 0.3}
         ),
-        '0shot-text-s0.3-cot': lambda series, train_dataset: create_openai_request(
+        '0shot-text-s0.3-cot': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             few_shots=train_dataset.few_shots(num_shots=0),
             series_args={'scale': 0.3},
             cot=train_dataset.name
         ),
-        '1shot-text-s0.3-cot': lambda series, train_dataset: create_openai_request(
+        '1shot-text-s0.3-cot': lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             few_shots=train_dataset.few_shots(num_shots=1),
             series_args={'scale': 0.3},
             cot=train_dataset.name
         ),
-        "0shot-text-s0.3-csv": lambda series, train_dataset: create_openai_request(
+        "0shot-text-s0.3-csv": lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             few_shots=train_dataset.few_shots(num_shots=0),
             series_args={"scale": 0.3, "csv": True}
         ),
-        "0shot-text-s0.3-cot-csv": lambda series, train_dataset: create_openai_request(
+        "0shot-text-s0.3-cot-csv": lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             few_shots=train_dataset.few_shots(num_shots=0),
             series_args={"scale": 0.3, "csv": True},
             cot=train_dataset.name
         ),
-        "0shot-text-s0.3-tpd": lambda series, train_dataset: create_openai_request(
+        "0shot-text-s0.3-tpd": lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             few_shots=train_dataset.few_shots(num_shots=0),
             series_args={"scale": 0.3, "token_per_digit": True}
         ),
-        "0shot-text-s0.3-cot-tpd": lambda series, train_dataset: create_openai_request(
+        "0shot-text-s0.3-cot-tpd": lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             few_shots=train_dataset.few_shots(num_shots=0),
             series_args={"scale": 0.3, "token_per_digit": True},
             cot=train_dataset.name
         ),
-        "0shot-text-s0.3-pap": lambda series, train_dataset: create_openai_request(
+        "0shot-text-s0.3-pap": lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             few_shots=train_dataset.few_shots(num_shots=0),
             series_args={"scale": 0.3, "pap": True}
         ),
-        "0shot-text-s0.3-cot-pap": lambda series, train_dataset: create_openai_request(
+        "0shot-text-s0.3-cot-pap": lambda series, train_dataset, entity, global_min, global_max: create_openai_request(
             series,
             vision=False,
             few_shots=train_dataset.few_shots(num_shots=0),

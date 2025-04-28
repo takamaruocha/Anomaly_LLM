@@ -3,7 +3,6 @@ import argparse
 from utils import generate_batch_AD_requests
 from openai_api import openai_client
 from loguru import logger
-import json
 import os
 from config import create_batch_api_configs
 
@@ -84,7 +83,8 @@ def main():
     batch_api_configs = create_batch_api_configs()
     client = openai_client(args.model)
 
-    datasets = ["005_UCR_Anomaly_DISTORTEDCIMIS44AirTemperature1", "113_UCR_Anomaly_CIMIS44AirTemperature1"]
+    #datasets = ["005_UCR_Anomaly_DISTORTEDCIMIS44AirTemperature1", "113_UCR_Anomaly_CIMIS44AirTemperature1"]
+    datasets = ["125_UCR_Anomaly_ECG4"]
 
     for entity in datasets:
 

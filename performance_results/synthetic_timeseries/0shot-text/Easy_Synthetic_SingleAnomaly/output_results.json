@@ -1,0 +1,8 @@
+{
+  "model": "gpt-4o-2024-11-20",
+  "variant": "0shot-text",
+  "entity": "Easy_Synthetic_SingleAnomaly",
+  "precision": 0.333,
+  "recall": 0.92,
+  "f1": 0.489
+}

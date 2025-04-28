@@ -3,6 +3,7 @@ from utils import parse_output
 from openai_api import send_openai_request
 from config import create_batch_api_configs
 import argparse
+import numpy as np
 
 
 def parse_arguments():
@@ -19,7 +20,7 @@ def online_AD_with_retries(
     request_func: callable,
     variant: str = "standard",
     num_retries: int = 4,
-    entity = "160_UCR_Anomaly_TkeepThirdMARS",
+    entity = "Synthetic_SingleAnomaly",
 ):
     import json
     import time
@@ -35,7 +36,7 @@ def online_AD_with_retries(
     log_fn = f"logs/synthetic/{data_name}/{model_name}/" + variant + ".log"
     logger.add(log_fn, format="{time} {level} {message}", level="INFO")
     results_dir = f'results/{data_name}/{entity}/{model_name}'
-    base_dir = "/Storage2/maru/datasets/UCR_Anomaly_Archive/AnomLLM/"
+    base_dir = "datasets"
     data_dir = os.path.join(base_dir, "eval", entity)
     train_dir = os.path.join(base_dir, "train", entity)
     jsonl_fn = os.path.join(results_dir, variant + '.jsonl')
@@ -46,6 +47,15 @@ def online_AD_with_retries(
 
     train_dataset = SyntheticDataset(train_dir)
     train_dataset.load()
+
+    # 全部を縦方向（0軸）に結合する
+    all_series = np.vstack(eval_dataset.series)
+
+    # 最小値と最大値を取得
+    global_min = np.min(all_series)
+    global_max = np.max(all_series)
+
+    print(global_min, global_max)
 
     # Load existing results if jsonl file exists
     if os.path.exists(jsonl_fn):
@@ -67,7 +77,10 @@ def online_AD_with_retries(
             try:
                 request = request_func(
                     eval_dataset.series[i - 1],
-                    train_dataset
+                    train_dataset,
+                    entity,
+                    global_min,
+                    global_max
                 )
                 response = send_openai_request(request, model_name)
                 # Write the result to jsonl
@@ -102,25 +115,18 @@ def main():
     args = parse_arguments()
     batch_api_configs = create_batch_api_configs()
     
-    #entities = ["005_UCR_Anomaly_DISTORTEDCIMIS44AirTemperature1", "113_UCR_Anomaly_CIMIS44AirTemperature1"]
-    root_path = "/Storage2/maru/datasets/UCR_Anomaly_Archive/UCR_Anomaly_FullData/"
-    datasets = os.listdir(root_path)
-    datasets = sorted(datasets, key=lambda x: int(x.split('_')[0]))
-    datasets = ["076_UCR_Anomaly_DISTORTEDresperation10"]
+    #entity = "Synthetic_SingleAnomaly"  # Time-series 1: sine curve + noise
+    entity = "Easy_Synthetic_SingleAnomaly"  # Time-series 2: 0.5 + noise
 
-    for dataset in datasets:
-        fields = dataset.split('_')
-        entity = '_'.join(fields[:4])
+    print(f"\n📊 Processing: {entity}")
 
-        print(f"\n📊 Processing: {entity}")
-
-        online_AD_with_retries(
-            model_name=args.model,
-            data_name=args.data,
-            request_func=batch_api_configs[args.variant],
-            variant=args.variant,
-            entity=f'{entity}',
-        )
+    online_AD_with_retries(
+        model_name=args.model,
+        data_name=args.data,
+        request_func=batch_api_configs[args.variant],
+        variant=args.variant,
+        entity=f'{entity}',
+    )
 
 
 if __name__ == '__main__':

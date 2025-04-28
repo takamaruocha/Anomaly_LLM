@@ -20,7 +20,7 @@ from data.synthetic import SyntheticDataset
 
 
 def load_datasets(entity):
-    base_dir = "/Storage2/maru/datasets/UCR_Anomaly_Archive/AnomLLM/"
+    base_dir = "datasets"
     data_dir = os.path.join(base_dir, "eval", entity)
     train_dir = os.path.join(base_dir, "train", entity)
     eval_dataset = SyntheticDataset(data_dir)
@@ -30,146 +30,112 @@ def load_datasets(entity):
     return eval_dataset, train_dataset
 
 
-def compute_metrics_for_results(eval_dataset, results, num_samples=69):
-    metric_names = [
-        "precision",
-        "recall",
-        "f1",
-        "affi precision",
-        "affi recall",
-        "affi f1",
-    ]
-    results_dict = {key: [[] for _ in metric_names] for key in results.keys()}
-
-    for i in trange(0, num_samples):
-        anomaly_locations = eval_dataset[i][0].numpy()
-        gt = interval_to_vector(anomaly_locations[0])
-        
-        for name, prediction in results.items():
-            try:
-                metrics = compute_metrics(gt, prediction[i])
-            except IndexError:
-                print(f"experiment {name} not finished")
-            for idx, metric_name in enumerate(metric_names):
-                results_dict[name][idx].append(metrics[metric_name])
-
-    df = pd.DataFrame(
-        {k: np.mean(v, axis=1) for k, v in results_dict.items()},
-        index=["precision", "recall", "f1", "affi precision", "affi recall", "affi f1"],
-    )
-    return df
-"""
-
-
 def compute_metrics_for_results(eval_dataset, results, num_samples):
     metric_names = [
         "precision",
         "recall",
         "f1",
-        "affi precision",
-        "affi recall",
-        "affi f1",
+        #"affi precision",
+        #"affi recall",
+        #"affi f1",
     ]
     results_dict = {key: [[] for _ in metric_names] for key in results.keys()}
+    all_gts_preds = {}
 
     for name, prediction in results.items():
-        print(f"🧪 Evaluating {name})")
+        #if name != "gpt-4o-2024-11-20 (0shot-text)":
+        #    continue
+        print(f"🧪 Evaluating {name}")
         gts = []
         preds = []
 
-        for i in trange(0, num_samples):
-            anomaly_locations = eval_dataset[i][0].numpy()
-            gt = interval_to_vector(anomaly_locations[0])
-            gts.append(gt)
+        print(len(eval_dataset), len(prediction))
 
+        for i in trange(0, num_samples):
+            #print(f"============{i}============")
+            anomaly_locations = eval_dataset[i][0].numpy()
+            gt = interval_to_vector(anomaly_locations[0], start=0, end=96)
+            gts.append(gt)
+            #print("gt: ", np.sum(gt))
+            #print("gt: ", gt.shape)
             if prediction[i] is None:
-                #print(f"[SKIP] {name} index {i} is missing or None")
                 preds.append(np.zeros(len(gt)))
+                #print("pred: ", "None")
+                #print("pred: ", len(gt))
             else:
                 preds.append(prediction[i].flatten())
-                #print('pred: ', prediction[i])
+                #print("pred", np.sum(prediction[i].flatten()))
+                #print("pred: ", prediction[i].shape)
 
         gts = np.concatenate(gts, axis=0)
         preds = np.concatenate(preds, axis=0)
+        print(gts.shape, preds.shape)
+        all_gts_preds[name] = (gts, preds)
+
         metrics = compute_metrics(gts, preds)
         for idx, metric_name in enumerate(metric_names):
             results_dict[name][idx].append(metrics[metric_name])
 
     df = pd.DataFrame(
         {k: np.mean(v, axis=1) for k, v in results_dict.items()},
-        index=["precision", "recall", "f1", "affi precision", "affi recall", "affi f1"],
+        index=["precision", "recall", "f1"]#, "affi precision", "affi recall", "affi f1"],
     )
-    return df
-"""
+    return df, all_gts_preds
+
 
 def main(args):
-    # 使いたいデータセット一覧
-    #entities = [
-    #    "005_UCR_Anomaly_DISTORTEDCIMIS44AirTemperature1",
-    #    "113_UCR_Anomaly_CIMIS44AirTemperature1"
-    #]
-    root_path = "/Storage2/maru/datasets/UCR_Anomaly_Archive/UCR_Anomaly_FullData/"
-    datasets = os.listdir(root_path)
-    datasets = sorted(datasets, key=lambda x: int(x.split('_')[0]))
+    data_name = "synthetic_timeseries"
 
-    data_name = "UCR_Anomaly"
+    #entity = "Synthetic_SingleAnomaly"
+    entity = "Easy_Synthetic_SingleAnomaly"
 
-    for dataset in datasets:
-        fields = dataset.split('_')
-        entity = '_'.join(fields[:4])
+    label_name = f"label-{entity}"
+    table_caption = f"Evaluation on {entity}"
 
-        label_name = f"label-{entity}"
-        table_caption = f"Evaluation on {entity}"
+    print(f"\n📊 Processing: {entity}")
 
-        print(f"\n📊 Processing: {entity}")
+    eval_dataset, train_dataset = load_datasets(entity)
+    #print("eval_dataset", len(eval_dataset), eval_dataset[0][0], eval_dataset[0][1].shape)
+    directory = f"results/{data_name}/{entity}"
+    results = collect_results(directory, ignore=['phi'])
 
-        eval_dataset, train_dataset = load_datasets(entity)
-        directory = f"results/{data_name}/{entity}"
-        results = collect_results(directory, ignore=['phi'])
+    df, all_gts_preds = compute_metrics_for_results(eval_dataset, results, len(eval_dataset))
+    double_df = process_dataframe(df.T.copy())
+    print(double_df)
 
-        df = compute_metrics_for_results(eval_dataset, results, len(eval_dataset))
-        double_df = process_dataframe(df.T.copy())
-        print(double_df)
+    # JSON 形式で variant ごとに保存
+    for (model, variant), row in double_df.iterrows():
+        # 保存先ディレクトリ
+        variant_dir = os.path.join("performance_results", data_name, variant, entity)
+        os.makedirs(variant_dir, exist_ok=True)
 
-        os.makedirs("results/agg", exist_ok=True)
-        with open(f"results/agg/{entity}.pkl", "wb") as f:
-            pickle.dump(double_df, f)
+        # 保存ファイル名（entityごと）
+        output_path = os.path.join(variant_dir, f"output_results.json")
 
-        styled_df = highlight_by_ranking(double_df)
-        latex_table = styled_df_to_latex(styled_df, table_caption, label=label_name)
-        print(latex_table)
+        # 指標を辞書化して保存
+        metric_dict = {
+            "model": str(model),
+            "variant": str(variant),
+            "entity": str(entity),
+            "precision": float(row["precision"]),
+            "recall": float(row["recall"]),
+            "f1": float(row["f1"]),
+            #"affi_precision": float(row["affi precision"]),
+            #"affi_recall": float(row["affi recall"]),
+            #"affi_f1": float(row["affi f1"]),
+        }
 
-        # LaTeXファイルに追記
-        with open("out.tex", "a") as f:
-            f.write(latex_table + "\n\n")
+        with open(output_path, "w") as jf:
+            import json
+            json.dump(metric_dict, jf, indent=2)
 
-        # JSON 形式で variant ごとに保存
-        for (model, variant), row in double_df.iterrows():
-            # 保存先ディレクトリ
-            variant_dir = os.path.join("/Storage2/maru/models/AnomLLM_per_segment/", variant, entity)
-            os.makedirs(variant_dir, exist_ok=True)
+        print(f"✅ Saved JSON: {output_path}")
 
-            # 保存ファイル名（entityごと）
-            output_path = os.path.join(variant_dir, f"output_results.json")
-
-            # 指標を辞書化して保存
-            metric_dict = {
-                "model": str(model),
-                "variant": str(variant),
-                "entity": str(entity),
-                "precision": float(row["precision"]),
-                "recall": float(row["recall"]),
-                "f1": float(row["f1"]),
-                "affi_precision": float(row["affi precision"]),
-                "affi_recall": float(row["affi recall"]),
-                "affi_f1": float(row["affi f1"]),
-             }
-
-            with open(output_path, "w") as jf:
-                import json
-                json.dump(metric_dict, jf, indent=2)
-
-            print(f"✅ Saved JSON: {output_path}")
+        key = f"{model} ({variant})"
+        #if key == "gpt-4o-2024-11-20 (0shot-text)":
+        gts, preds = all_gts_preds[key]
+        np.save(os.path.join(variant_dir, "gts.npy"), gts)
+        np.save(os.path.join(variant_dir, "preds.npy"), preds)
 
 """
 python src/result_agg.py --data_name trend --label_name trend-exp --table_caption "Trend anomalies in shifting sine wave"

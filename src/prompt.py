@@ -3,14 +3,50 @@ from scipy import interpolate
 import json
 import re
 from scipy import stats
+import os
 
+#PROMPT = """Detect ranges of anomalies in this time series, in terms of the x-axis coordinate.
+#List one by one, in JSON format. 
+#If there are no anomalies, answer with an empty list [].
 
-PROMPT = """Detect ranges of anomalies in this time series, in terms of the x-axis coordinate.
-List one by one, in JSON format. 
-If there are no anomalies, answer with an empty list [].
+#Output template:
+#[{"start": ..., "end": ...}, {"start": ..., "end": ...}...]
+#"""
 
-Output template:
-[{"start": ..., "end": ...}, {"start": ..., "end": ...}...]
+PROMPT = """You are given a time series with 512 time steps.
+
+Focus **only on the last 96 time steps**, which correspond to the re-indexed range from **0 to 95**.
+
+An **anomaly** is defined as one or more consecutive data points that significantly deviate in value or behavior from the surrounding observations.
+
+Identify any **continuous anomalous segments** in this range and output them in JSON format.  
+Each anomaly should be described using a dictionary with `"start"` and `"end"` keys (inclusive start, exclusive end).  
+
+Return an **empty list** if there are no anomalies.
+
+Output format example:
+[{"start": 10, "end": 20}]
+or simply `[]` if there are no anomalies.
+
+(Assume there is at most **one anomaly**.)
+"""
+
+PROMPT_IMG = """You are given a time series with 512 time steps, plotted as an image.
+
+Focus **only on the last 96 time steps**, which correspond to the re-indexed range from **0 to 95**.
+
+An **anomaly** is defined as one or more consecutive data points that significantly deviate in value or behavior from the surrounding observations.
+
+Identify any **continuous anomalous segments** in this range and output them in JSON format.
+Each anomaly should be described using a dictionary with `"start"` and `"end"` keys (inclusive start, exclusive end).
+
+Return an **empty list** if there are no anomalies.
+
+Output format example:
+[{"start": 10, "end": 20}]
+or simply `[]` if there are no anomalies.
+
+(Assume there is at most **one anomaly**.)
 """
 
 CALC_HISTORY = [{"role":"user","content":"What is the value of 678678 + 123123? Do it step by step."},{"role":"assistant","content":"1. **Align the numbers:**\n   ```\n   678678\n   123123\n   -------\n   ```\n\n2. **Add the ones place:** 8 + 3 = 11. Write down 1 and carry-over 1.\n\n3. **Add the tens place:** 7 + 2 + 1 (carry-over) = 10. Write down 0 and carry-over 1.\n\n4. **Continue adding each place value, carrying over as needed:**\n\n   ```\n   678678\n   123123\n   -------\n   801801\n   ```\n\nTherefore, 678678 + 123123 = **801801**. \n"},{"role":"user","content":"What is the value of 679679 + 123? Do it step by step."},{"role":"assistant","content":"Here's the step-by-step solution:\n\n1. **Align the numbers:** Since 123 has fewer digits, we add zeros to the left to align the place values:\n   ```\n   679679\n     123\n   -------\n   ```\n\n2. **Add the ones place:** 9 + 3 = 12. Write down 2 and carry-over 1.\n\n3. **Add the tens place:** 7 + 2 + 1 (carry-over) = 10. Write down 0 and carry-over 1.\n\n4. **Continue adding each place value, carrying over as needed:**\n\n   ```\n   679679\n     123\n   -------\n   679802\n   ```\n\nTherefore, 679679 + 123 = **679802**. \n"},{"role":"user","content":"What is the value of 79435 + 31486? Do it step by step."},{"role":"assistant","content":"Here's the step-by-step solution:\n\n1. **Align the numbers:**\n   ```\n   79435\n   31486\n   -------\n   ```\n\n2. **Add the ones place:** 5 + 6 = 11. Write down 1 and carry-over 1.\n\n3. **Add the tens place:** 3 + 8 + 1 (carry-over) = 12. Write down 2 and carry-over 1.\n\n4. **Add the hundreds place:** 4 + 4 + 1 (carry-over) = 9. Write down 9.\n\n5. **Add the thousands place:** 9 + 1 = 10. Write down 0 and carry-over 1.\n\n6. **Add the ten thousands place:** 7 + 3 + 1 (carry-over) = 11. Write down 11.\n\n   ```\n   79435\n   31486\n   -------\n   110921\n   ```\n\nTherefore, 79435 + 31486 = **110921**. \n"},{"role":"user","content":"What is the value of 7943 + 386? Do it step by step."},{"role":"assistant","content":"Here's the step-by-step solution:\n\n1. **Align the numbers:**\n   ```\n   7943\n    386\n   -------\n   ```\n\n2. **Add the ones place:** 3 + 6 = 9. Write down 9.\n\n3. **Add the tens place:** 4 + 8 = 12. Write down 2 and carry-over 1.\n\n4. **Add the hundreds place:** 9 + 3 + 1 (carry-over) = 13. Write down 3 and carry-over 1.\n\n5. **Add the thousands place:** 7 + 1 (carry-over) = 8. Write down 8.\n\n   ```\n   7943\n    386\n   -------\n   8329\n   ```\n\nTherefore, 7943 + 386 = **8329**. \n"},{"role":"user","content":"What is the value of 49999 + 2135? Do it step by step."},{"role":"assistant","content":"Here's the step-by-step solution:\n\n1. **Align the numbers:**\n   ```\n   49999\n    2135\n   -------\n   ```\n\n2. **Add the ones place:** 9 + 5 = 14. Write down 4 and carry-over 1.\n\n3. **Add the tens place:** 9 + 3 + 1 (carry-over) = 13. Write down 3 and carry-over 1.\n\n4. **Add the hundreds place:** 9 + 1 + 1 (carry-over) = 11. Write down 1 and carry-over 1.\n\n5. **Add the thousands place:** 9 + 2 + 1 (carry-over) = 12. Write down 2 and carry-over 1.\n\n6. **Add the ten thousands place:** 4 + 1 (carry-over) = 5. Write down 5.\n\n   ```\n   49999\n    2135\n   -------\n   52134\n   ```\n\nTherefore, 49999 + 2135 = **52134**. \n"}]  # noqa
@@ -37,7 +73,8 @@ The anomalies are: \n```[]```
 The values appear to follow a consistent pattern without sudden <|abnormal_summary|> that would indicate an anomaly.
 """
 
-LIMIT_PROMPT = "Assume there are up to 5 anomalies. "
+LIMIT_PROMPT = ""
+#"Assume there are up to 1 anomalies. "
 
 
 def scale_x_axis(data, scale_factor):
@@ -152,9 +189,12 @@ def time_series_to_str(
 
 def time_series_to_image(
     time_series,
+    entity,
+    global_min,
+    global_max,
     fig_size=(10, 1.5),
     gt_anomaly_intervals=None,
-    anomalies=None
+    anomalies=None,
 ):
     import base64
     from io import BytesIO
@@ -173,11 +213,22 @@ def time_series_to_image(
     
     fig = plot_series_and_predictions(
         series=time_series,
+        global_min=global_min,
+        global_max=global_max,
         single_series_figsize=fig_size,
         gt_anomaly_intervals=gt_anomaly_intervals,
         anomalies=anomalies
     )
-    
+
+    save_dir = f"figs/{entity}"
+    os.makedirs(save_dir, exist_ok=True)
+
+    existing_files = [f for f in os.listdir(save_dir) if f.endswith('.png')]
+    next_index = len(existing_files)
+    file_path = os.path.join(save_dir, f"{next_index}.png")
+
+    fig.savefig(file_path, format='png')
+
     # Encode the figure to a base64 string
     buf = BytesIO()
     fig.savefig(buf, format='png')
@@ -194,16 +245,19 @@ def create_vision_messages(
     few_shots=False,
     cot=False,
     calc=None,
-    image_args={}
+    image_args={},
+    entity="160_UCR_Anomaly_TkeepThirdMARS",
+    global_min=-1,
+    global_max=1
 ):
-    img = time_series_to_image(time_series, **image_args)
+    img = time_series_to_image(time_series, entity, global_min, global_max, **image_args)
     messages = [
         {
             "role": "user",
             "content": [
                 {
                     "type": "text",
-                    "text": PROMPT if not cot else COT_PROMPT
+                    "text": PROMPT_IMG if not cot else COT_PROMPT
                 },
                 {
                     "type": "image_url",
@@ -222,7 +276,7 @@ def create_vision_messages(
     if few_shots:
         history = []
         for series, anom in few_shots:
-            img = time_series_to_image(series, **image_args)
+            img = time_series_to_image(time_series, entity, global_min, global_max, **image_args)
             if cot:
                 if len(anom) == 0:
                     answer = COT_NORMAL_ANSWER_TEMPLATE
@@ -240,7 +294,7 @@ def create_vision_messages(
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": PROMPT if not cot else COT_PROMPT},
+                        {"type": "text", "text": PROMPT_IMG if not cot else COT_PROMPT},
                         {
                             "type": "image_url",
                             "image_url": {
@@ -343,9 +397,12 @@ def create_openai_request(
     calc=None,       # Enforce wrong calculation
     series_args={},  # Arguments for time_series_to_str
     image_args={},   # Arguments for time_series_to_image
+    entity="160_UCR_Anomaly_TkeepThirdMARS",
+    global_min=-1,
+    global_max=1
 ):
     if vision:
-        messages = create_vision_messages(time_series, few_shots, cot, calc, image_args)
+        messages = create_vision_messages(time_series, few_shots, cot, calc, image_args, entity=entity, global_min=global_min, global_max=global_max)
     else:
         messages = create_text_messages(time_series, few_shots, cot, calc, series_args)
     
