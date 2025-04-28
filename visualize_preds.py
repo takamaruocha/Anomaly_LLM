@@ -29,7 +29,7 @@ def plot_time_series(trues, test_labels, anomaly_results, start_time, end_time, 
     # 上段: オリジナルと復元のプロット
     axs.plot(x_range, trues[start_time:end_time], label='Ground Truth', color='dimgray', linewidth=0.8)
 
-    #vus_roc = vus_roc * 100
+    # vus_roc = vus_roc * 100
     axs.set_title(f'Ground Truth', fontsize=12)
     axs.set_ylabel('Value', fontsize=11)
     axs.set_ylim([y_min-0.5, y_max+0.5])
@@ -46,7 +46,7 @@ def plot_time_series(trues, test_labels, anomaly_results, start_time, end_time, 
 
 def main(args=None):
     datasets = ["Synthetic_SingleAnomaly"]
-    #datasets = ["Easy_Synthetic_SingleAnomaly"]
+    # datasets = ["Easy_Synthetic_SingleAnomaly"]
 
     data_name = "synthetic_timeseries"
 
