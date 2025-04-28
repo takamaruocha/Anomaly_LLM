@@ -112,9 +112,9 @@ def plot_series_and_predictions(
     ymin_max = ymin_max[::-1]
 
     for i in range(series.shape[1]):
-        #plt.ylim(gt_ylim)
+        # plt.ylim(gt_ylim)
         ymin, ymax = global_min, global_max
-        #ymin, ymax = np.min(series[:, i]), np.max(series[:, i])
+        # ymin, ymax = np.min(series[:, i]), np.max(series[:, i])
         padding = 0.1 * (ymax - ymin)  # 少しだけ余白
         plt.ylim(ymin - padding, ymax + padding)
         plt.plot(series[:, i], color=gt_color)
@@ -325,29 +325,29 @@ def compute_metrics(gt, prediction):
             'affi f1': 0
         }
     
-    #elif np.count_nonzero(gt) == 0 and np.count_nonzero(prediction) == 0:
-    # gtとpredictionが全て0（正常）の場合は、異常検知に成功（全ての評価指標が1）
-    #    print("B")
-    #    metrics = {
-    #        'precision': 1,
-    #        'recall': 1,
-    #        'f1': 1,
-    #        'affi precision': 1,
-    #        'affi recall': 1,
-    #        'affi f1': 1
-    #    }
+    # elif np.count_nonzero(gt) == 0 and np.count_nonzero(prediction) == 0:
+    #  gtとpredictionが全て0（正常）の場合は、異常検知に成功（全ての評価指標が1）
+    #     print("B")
+    #     metrics = {
+    #         'precision': 1,
+    #         'recall': 1,
+    #         'f1': 1,
+    #         'affi precision': 1,
+    #         'affi recall': 1,
+    #         'affi f1': 1
+    #     }
     # Check if only gt is empty
     # gtまたはpredictionに異常が一つもない→recallまたはprecisionの分母が0になる
-    #elif np.count_nonzero(gt) == 0 or np.count_nonzero(prediction) == 0:
-    #    print("C")
-    #    metrics = {
-    #        'precision': 0,
-    #        'recall': 0,
-    #        'f1': 0,
-    #        'affi precision': 0,
-    #        'affi recall': 0,
-    #        'affi f1': 0
-    #    }
+    # elif np.count_nonzero(gt) == 0 or np.count_nonzero(prediction) == 0:
+    #     print("C")
+    #     metrics = {
+    #         'precision': 0,
+    #         'recall': 0,
+    #         'f1': 0,
+    #         'affi precision': 0,
+    #         'affi recall': 0,
+    #         'affi f1': 0
+    #     }
     
     else:
         print("D")
@@ -355,24 +355,24 @@ def compute_metrics(gt, prediction):
         recall = recall_score(gt, prediction, zero_division=0)
         f1 = f1_score(gt, prediction, zero_division=0)
         
-        #events_pred = convert_vector_to_events(prediction)
-        #events_gt = convert_vector_to_events(gt)
-        #Trange = (0, len(prediction))
-        #aff = pr_from_events(events_pred, events_gt, Trange)
+        # events_pred = convert_vector_to_events(prediction)
+        # events_gt = convert_vector_to_events(gt)
+        # Trange = (0, len(prediction))
+        # aff = pr_from_events(events_pred, events_gt, Trange)
         
         # Calculate affiliation F1
-        #if aff['precision'] + aff['recall'] == 0:
-        #    affi_f1 = 0
-        #else:
-        #    affi_f1 = 2 * (aff['precision'] * aff['recall']) / (aff['precision'] + aff['recall'])
+        # if aff['precision'] + aff['recall'] == 0:
+        #     affi_f1 = 0
+        # else:
+        #     affi_f1 = 2 * (aff['precision'] * aff['recall']) / (aff['precision'] + aff['recall'])
         
         metrics = {
             'precision': round(precision, 3),
             'recall': round(recall, 3),
             'f1': round(f1, 3),
-            #'affi precision': round(aff['precision'], 3),
-            #'affi recall': round(aff['recall'], 3),
-            #'affi f1': round(affi_f1, 3)
+            # 'affi precision': round(aff['precision'], 3),
+            # 'affi recall': round(aff['recall'], 3),
+            # 'affi f1': round(affi_f1, 3)
         }
     return metrics
 

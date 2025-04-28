@@ -5,13 +5,13 @@ import re
 from scipy import stats
 import os
 
-#PROMPT = """Detect ranges of anomalies in this time series, in terms of the x-axis coordinate.
-#List one by one, in JSON format. 
-#If there are no anomalies, answer with an empty list [].
+# PROMPT = """Detect ranges of anomalies in this time series, in terms of the x-axis coordinate.
+# List one by one, in JSON format. 
+# If there are no anomalies, answer with an empty list [].
 
-#Output template:
-#[{"start": ..., "end": ...}, {"start": ..., "end": ...}...]
-#"""
+# Output template:
+# [{"start": ..., "end": ...}, {"start": ..., "end": ...}...]
+# """
 
 PROMPT = """You are given a time series with 512 time steps.
 
@@ -74,7 +74,7 @@ The values appear to follow a consistent pattern without sudden <|abnormal_summa
 """
 
 LIMIT_PROMPT = ""
-#"Assume there are up to 1 anomalies. "
+# "Assume there are up to 1 anomalies. "
 
 
 def scale_x_axis(data, scale_factor):

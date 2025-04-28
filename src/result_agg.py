@@ -35,16 +35,16 @@ def compute_metrics_for_results(eval_dataset, results, num_samples):
         "precision",
         "recall",
         "f1",
-        #"affi precision",
-        #"affi recall",
-        #"affi f1",
+        # "affi precision",
+        # "affi recall",
+        # "affi f1",
     ]
     results_dict = {key: [[] for _ in metric_names] for key in results.keys()}
     all_gts_preds = {}
 
     for name, prediction in results.items():
-        #if name != "gpt-4o-2024-11-20 (0shot-text)":
-        #    continue
+        # if name != "gpt-4o-2024-11-20 (0shot-text)":
+        #     continue
         print(f"🧪 Evaluating {name}")
         gts = []
         preds = []
@@ -52,20 +52,20 @@ def compute_metrics_for_results(eval_dataset, results, num_samples):
         print(len(eval_dataset), len(prediction))
 
         for i in trange(0, num_samples):
-            #print(f"============{i}============")
+            # print(f"============{i}============")
             anomaly_locations = eval_dataset[i][0].numpy()
             gt = interval_to_vector(anomaly_locations[0], start=0, end=96)
             gts.append(gt)
-            #print("gt: ", np.sum(gt))
-            #print("gt: ", gt.shape)
+            # print("gt: ", np.sum(gt))
+            # print("gt: ", gt.shape)
             if prediction[i] is None:
                 preds.append(np.zeros(len(gt)))
-                #print("pred: ", "None")
-                #print("pred: ", len(gt))
+                # print("pred: ", "None")
+                # print("pred: ", len(gt))
             else:
                 preds.append(prediction[i].flatten())
-                #print("pred", np.sum(prediction[i].flatten()))
-                #print("pred: ", prediction[i].shape)
+                # print("pred", np.sum(prediction[i].flatten()))
+                # print("pred: ", prediction[i].shape)
 
         gts = np.concatenate(gts, axis=0)
         preds = np.concatenate(preds, axis=0)
@@ -78,7 +78,7 @@ def compute_metrics_for_results(eval_dataset, results, num_samples):
 
     df = pd.DataFrame(
         {k: np.mean(v, axis=1) for k, v in results_dict.items()},
-        index=["precision", "recall", "f1"]#, "affi precision", "affi recall", "affi f1"],
+        index=["precision", "recall", "f1"]# , "affi precision", "affi recall", "affi f1"],
     )
     return df, all_gts_preds
 
@@ -86,7 +86,7 @@ def compute_metrics_for_results(eval_dataset, results, num_samples):
 def main(args):
     data_name = "synthetic_timeseries"
 
-    #entity = "Synthetic_SingleAnomaly"
+    # entity = "Synthetic_SingleAnomaly"
     entity = "Easy_Synthetic_SingleAnomaly"
 
     label_name = f"label-{entity}"
@@ -95,7 +95,7 @@ def main(args):
     print(f"\n📊 Processing: {entity}")
 
     eval_dataset, train_dataset = load_datasets(entity)
-    #print("eval_dataset", len(eval_dataset), eval_dataset[0][0], eval_dataset[0][1].shape)
+    # print("eval_dataset", len(eval_dataset), eval_dataset[0][0], eval_dataset[0][1].shape)
     directory = f"results/{data_name}/{entity}"
     results = collect_results(directory, ignore=['phi'])
 
@@ -120,9 +120,9 @@ def main(args):
             "precision": float(row["precision"]),
             "recall": float(row["recall"]),
             "f1": float(row["f1"]),
-            #"affi_precision": float(row["affi precision"]),
-            #"affi_recall": float(row["affi recall"]),
-            #"affi_f1": float(row["affi f1"]),
+            # "affi_precision": float(row["affi precision"]),
+            # "affi_recall": float(row["affi recall"]),
+            # "affi_f1": float(row["affi f1"]),
         }
 
         with open(output_path, "w") as jf:
@@ -132,7 +132,7 @@ def main(args):
         print(f"✅ Saved JSON: {output_path}")
 
         key = f"{model} ({variant})"
-        #if key == "gpt-4o-2024-11-20 (0shot-text)":
+        # if key == "gpt-4o-2024-11-20 (0shot-text)":
         gts, preds = all_gts_preds[key]
         np.save(os.path.join(variant_dir, "gts.npy"), gts)
         np.save(os.path.join(variant_dir, "preds.npy"), preds)
