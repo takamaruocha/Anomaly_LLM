@@ -170,4 +170,4 @@ src/vus.ipynb
 /data
 /.vscode/
 *.pdf
-*.tex
+*.texcalculate_AnomLLM_metrics_average.py
